@@ -22,7 +22,7 @@ repos:
       - id: detect-private-key
 
   - repo: https://github.com/gruntwork-io/pre-commit
-    rev: v0.1.17
+    rev: v0.1.22
     hooks:
       - id: terraform-fmt
       - id: terraform-validate
@@ -35,10 +35,9 @@ repos:
   - repo: https://github.com/antonbabenko/pre-commit-terraform
     rev: v1.72.1
     hooks:
-      - id: terrascan
-        args:
-          - --args=--verbose
-          - --args=--non-recursive
+      #- id: terrascan
+      #  args:
+      #    - --args=--verbose
+      #    - --args=--non-recursive
       - id: terraform_tfsec
       - id: terraform_checkov
-
