@@ -144,7 +144,7 @@ variable "container_apps" {
           path = string
         })))
       }))
-      init_containers = list(object({
+      init_containers = optional(list(object({
         name    = string
         args    = optional(list(string))
         command = optional(list(string))
@@ -160,7 +160,7 @@ variable "container_apps" {
           name = string
           path = string
         })))
-      }))
+      })))
       scale = object({
         max_replicas = number
         min_replicas = number
