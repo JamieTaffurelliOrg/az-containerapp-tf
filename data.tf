@@ -1,3 +1,7 @@
+data "azurerm_resource_group" "resource_group" {
+  name = var.resource_group_name
+}
+
 data "azurerm_container_app_environment" "container_app_env" {
   name                = var.container_app_environment_name
   resource_group_name = var.container_app_environment_resource_group_name

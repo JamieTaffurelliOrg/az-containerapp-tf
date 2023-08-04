@@ -22,12 +22,68 @@ variable "container_app_environment_certificates" {
 variable "container_apps" {
   type = list(object(
     {
-      name            = string
-      revision_mode   = optional(string, "Single")
-      max_replicas    = number
-      min_replicas    = number
-      revision_suffix = optional(string)
-
+      name                   = string
+      revision_mode          = optional(string, "Single")
+      revision_suffix        = optional(string)
+      max_inactive_revisions = optional(number)
+      dapr = optional(object({
+        app_id                   = string
+        app_port                 = number
+        app_protocol             = optional(string, "http")
+        enable_logging           = optional(bool, true)
+        enabled                  = optional(bool, true),
+        http_max_request_size_mb = optional(number, 4),
+        http_read_buffer_size_kb = optional(number, 65),
+        log_level                = optional(string, "info")
+      }))
+      ingress = optional(object({
+        allow_insecure_connections = optional(bool, false)
+        client_certificate_mode    = optional(string)
+        exposed_port               = number
+        external_enabled           = optional(bool, false)
+        target_port                = number
+        transport                  = optional(string, "auto")
+        cors_policy = optional(object({
+          allow_credentials = optional(bool)
+          allowed_headers   = optional(list(string))
+          allowed_methods   = optional(list(string))
+          allowed_origins   = optional(list(string))
+          expose_headers    = optional(list(string))
+          max_age           = optional(number)
+        }))
+        custom_domains = optional(list(object({
+          name                     = string
+          certificate_binding_type = optional(string, "Disabled")
+          certificate_reference    = string
+        })))
+        ip_security_restrictions = optional(list(object({
+          name             = string,
+          action           = string,
+          description      = string,
+          ip_address_range = string,
+        })))
+        sticky_sessions = optional(object({
+          affinity = string
+        }))
+        traffic_weights = optional(map(object({
+          revision_name   = optional(string)
+          label           = optional(string)
+          latest_revision = optional(bool)
+          percentage      = number
+        })))
+      }))
+      registries = optional(list(object({
+        server               = string
+        identity             = optional(string)
+        password_secret_name = optional(string)
+        username             = optional(string)
+      })))
+      secrets = optional(list(object({
+        name             = string
+        secret_reference = optional(string)
+        identity         = optional(string, "System")
+        key_vault_url    = optional(string)
+      })))
       containers = list(object({
         name    = string
         args    = optional(list(string))
@@ -36,6 +92,7 @@ variable "container_apps" {
         cpu     = string
         memory  = string
         liveness_probe = optional(object({
+          type                             = optional(string, "Liveness")
           failure_count_threshold          = optional(number, 3)
           host                             = optional(string)
           initial_delay                    = optional(number)
@@ -44,13 +101,13 @@ variable "container_apps" {
           port                             = optional(number, 443)
           termination_grace_period_seconds = optional(number)
           timeout                          = optional(number, 1)
-          transport                        = optional(string, "Https")
           header = optional(object({
             name  = string
             value = string
           }))
         }))
         readiness_probe = optional(object({
+          type                    = optional(string, "Readiness")
           failure_count_threshold = optional(number, 3)
           host                    = optional(string)
           interval_seconds        = optional(number, 10)
@@ -58,13 +115,13 @@ variable "container_apps" {
           port                    = optional(number, 443)
           success_count_threshold = optional(number, 3)
           timeout                 = optional(number, 1)
-          transport               = optional(string, "Https")
           header = optional(object({
             name  = string
             value = string
           }))
         }))
         startup_probe = optional(object({
+          type                             = optional(string, "Startup")
           failure_count_threshold          = optional(number, 3)
           host                             = optional(string)
           interval_seconds                 = optional(number, 10)
@@ -72,7 +129,6 @@ variable "container_apps" {
           port                             = optional(number, 443)
           termination_grace_period_seconds = optional(number)
           timeout                          = optional(number, 1)
-          transport                        = optional(string, "Https")
           header = optional(object({
             name  = string
             value = string
@@ -83,46 +139,67 @@ variable "container_apps" {
           secret_name = optional(string)
           value       = optional(string)
         })))
-        envs = optional(list(object({
+        volume_mounts = optional(list(object({
           name = string
           path = string
         })))
       }))
-      dapr = optional(object({
-        app_id       = string
-        app_port     = number
-        app_protocol = optional(string, "http")
-      }))
-      ingress = optional(object({
-        allow_insecure_connections = optional(bool, false)
-        fqdn                       = string
-        external_enabled           = optional(bool, false)
-        target_port                = number
-        transport                  = optional(string, "auto")
-        traffic_weights = optional(map(object({
-          revision_suffix = optional(string)
-          label           = optional(string)
-          latest_revision = optional(string)
-          percentage      = number
+      init_containers = list(object({
+        name    = string
+        args    = optional(list(string))
+        command = optional(list(string))
+        image   = string
+        cpu     = string
+        memory  = string
+        envs = optional(list(object({
+          name        = string
+          secret_name = optional(string)
+          value       = optional(string)
         })))
-        custom_domains = optional(list(object({
-          name                     = string
-          certificate_binding_type = optional(string, "Disabled")
-          certificate_reference    = string
+        volume_mounts = optional(list(object({
+          name = string
+          path = string
         })))
       }))
-      registry = optional(object({
-        server               = string
-        identity             = optional(string)
-        password_secret_name = optional(string)
-        username             = optional(string)
-      }))
+      scale = object({
+        max_replicas = number
+        min_replicas = number
+        rules = optional(list(object({
+          name = string
+          azure_queue = optional(object({
+            queue_length = number
+            queue_name   = string
+            auth = optional(list(object({
+              secret_reference  = optional(string)
+              trigger_parameter = optional(string)
+            })))
+          }))
+          custom = optional(object({
+            metadata = optional(map(string))
+            type     = string
+            auth = optional(list(object({
+              secret_reference  = optional(string)
+              trigger_parameter = optional(string)
+            })))
+          }))
+          http = optional(object({
+            metadata = optional(map(string))
+            auth = optional(list(object({
+              secret_reference  = optional(string)
+              trigger_parameter = optional(string)
+            })))
+          }))
+          tcp = optional(object({
+            metadata = optional(map(string))
+            auth = optional(list(object({
+              secret_reference  = optional(string)
+              trigger_parameter = optional(string)
+            })))
+          }))
+        })))
+      })
       volumes = optional(list(object({
         name = string
-      })))
-      secrets = optional(list(object({
-        name             = string
-        secret_reference = string
       })))
     }
   ))
