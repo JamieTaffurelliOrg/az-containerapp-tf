@@ -239,174 +239,174 @@ resource "azapi_resource" "container_app" {
             exposeHeaders    = each.value["ingress"].cors_policy.expose_headers,
             maxAge           = each.value["ingress"].cors_policy.max_age
           },
-          customDomains = [for k in each.value["ingress"].custom_domains : [
+          customDomains = each.value["ingress"].custom_domains == null ? [] : [for k in each.value["ingress"].custom_domains : [
             {
-              bindingType   = k.value["certificate_binding_type"],
-              certificateId = data.azurerm_container_app_environment_certificate.container_app_env_cert[(k.value["certificate_reference"])].id
-              name          = k.value["name"]
+              bindingType   = k.certificate_binding_type,
+              certificateId = data.azurerm_container_app_environment_certificate.container_app_env_cert[(k.certificate_reference)].id,
+              name          = k.name
             }
-          ] if k != null]
-          ipSecurityRestrictions = [for k in each.value["ingress"].ip_security_restrictions : [
+          ]]
+          ipSecurityRestrictions = each.value["ingress"].ip_security_restrictions == null ? [] : [for k in each.value["ingress"].ip_security_restrictions : [
             {
-              action         = each.value["action"],
-              description    = each.value["description"],
-              ipAddressRange = each.value["ip_address_range"]
-              name           = each.value["name"]
+              action         = k.action,
+              description    = k.description,
+              ipAddressRange = k.ip_address_range,
+              name           = k.name
             }
-          ] if k != null],
-          traffic = [for k in each.value["ingress"].traffic_weights : [[
+          ]],
+          traffic = each.value["ingress"].traffic_weights == null ? [] : [for k in each.value["ingress"].traffic_weights : [
             {
-              label          = each.value["label"],
-              latestRevision = each.value["latest_revision"],
-              revisionName   = each.value["revision_name"],
-              weight         = each.value["percentage"]
+              label          = k.label,
+              latestRevision = k.latest_revision,
+              revisionName   = k.revision_name,
+              weight         = k.percentage
             }
-          ]] if k != null]
+          ]]
         },
-        registries = [for k in each.value["registries"] : [
+        registries = each.value["registries"] == null ? [] : [for k in each.value["registries"] : [
           {
-            identity          = each.value["identity"],
-            passwordSecretRef = each.value["password_secret_name"],
-            server            = each.value["server"],
-            username          = each.value["username"]
+            identity          = k.identity,
+            passwordSecretRef = k.password_secret_name,
+            server            = k.server,
+            username          = k.username
           }
-        ] if k != null],
-        secrets = [for k in each.value["secrets"] : [
+        ]],
+        secrets = each.value["secrets"] == null ? [] : [for k in each.value["secrets"] : [
           {
-            identity    = each.value["identity"],
-            keyVaultUrl = each.value["key_vault_url"],
-            name        = each.value["name"],
-            value       = var.secrets[(each.value["secret_reference"])].value
+            identity    = k.identity,
+            keyVaultUrl = k.key_vault_url,
+            name        = k.name,
+            value       = var.secrets[(k.secret_reference)].value
           }
-        ] if k != null]
+        ]]
       },
       template = {
         containers = [for k in each.value["containers"] : [
           {
-            name    = each.value["name"],
-            args    = each.value["args"],
-            command = each.value["command"],
-            image   = each.value["image"],
-            env = [for k in each.value["envs"] : [
+            name    = k.name,
+            args    = k.args,
+            command = k.command,
+            image   = k.image,
+            env = k.envs == null ? [] : [for v in k.envs : [
               {
-                name      = each.value["name"],
-                secretRef = each.value["secret_name"],
-                value     = each.value["value"]
+                name      = v.name,
+                secretRef = v.secret_name,
+                value     = v.value
               }
-            ] if k != null],
-            probes = [for k in [each.value["liveness_probe"], each.value["readiness_probe"], each.value["startup_probe"]] : [
+            ]],
+            probes = [for v in [k.liveness_probe, k.readiness_probe, k.startup_probe] : [
               {
-                failureThreshold              = each.value["failure_count_threshold"],
-                terminationGracePeriodSeconds = each.value["termination_grace_period_seconds"],
-                timeoutSeconds                = each.value["timeout"],
-                type                          = each.value["type"],
-                initialDelaySeconds           = each.value["initial_delay"],
-                periodSeconds                 = each.value["interval_seconds"],
-                successThreshold              = each.value["success_count_threshold"],
+                failureThreshold              = v.failure_count_threshold,
+                terminationGracePeriodSeconds = v.termination_grace_period_seconds,
+                timeoutSeconds                = v.timeout,
+                type                          = v.type,
+                initialDelaySeconds           = v.initial_delay,
+                periodSeconds                 = v.interval_seconds,
+                successThreshold              = v.success_count_threshold,
                 httpGet = {
-                  host   = each.value["host"],
-                  path   = each.value["path"],
-                  port   = each.value["port"],
-                  scheme = each.value["host"],
-                  httpHeaders = [for k in each.value["headers"] : [
+                  host   = v.host,
+                  path   = v.path,
+                  port   = v.port,
+                  scheme = v.host,
+                  httpHeaders = v.headers == null ? [] : [for i in v.headers : [
                     {
-                      name  = each.value["name"],
-                      value = each.value["value"]
+                      name  = i.name,
+                      value = i.value
                     }
                   ]]
                 }
               }
-            ] if k != null],
+            ] if v != null],
             resources = {
-              cpu    = each.value["cpu"],
-              memory = each.value["memory"]
+              cpu    = k.cpu,
+              memory = k.memory
             },
-            volumeMounts = [for k in each.value["volume_mounts"] : [
+            volumeMounts = k.volume_mounts == null ? [] : [for v in k.volume_mounts : [
               {
-                mountPath  = each.key,
-                volumeName = each.value["path"]
+                mountPath  = v.key,
+                volumeName = v.path
               }
-            ] if k != null]
+            ]]
           }
         ]],
-        initContainers = [for k in each.value["init_containers"] : [
+        initContainers = each.value["init_containers"] == null ? [] : [for k in each.value["init_containers"] : [
           {
-            name    = each.value["name"],
-            args    = each.value["args"],
-            command = each.value["command"],
-            image   = each.value["image"],
-            env = [for k in each.value["envs"] : [
+            name    = k.name,
+            args    = k.args,
+            command = k.command,
+            image   = k.image,
+            env = k.envs == null ? [] : [for v in k.envs : [
               {
-                name      = each.value["name"],
-                secretRef = each.value["secret_name"],
-                value     = each.value["value"]
+                name      = v.name,
+                secretRef = v.secret_name,
+                value     = v.value
               }
-            ] if k != null],
+            ]],
             resources = {
-              cpu    = each.value["cpu"],
-              memory = each.value["memory"]
+              cpu    = k.cpu,
+              memory = k.memory
             },
-            volumeMounts = [for k in each.value["volume_mounts"] : [
+            volumeMounts = k.volume_mounts == null ? [] : [for v in k.volume_mounts : [
               {
-                mountPath  = each.key,
-                volumeName = each.value["path"]
+                mountPath  = v.key,
+                volumeName = v.path
               }
-            ] if k != null]
+            ]]
           }
         ]],
         scale = {
           maxReplicas = each.value["scale"].max_replicas,
           minReplicas = each.value["scale"].min_replicas,
-          rules = [for k in each.value["scale"].rules : [
+          rules = each.value["scale"].rules == null ? [] : [for k in each.value["scale"].rules : [
             {
-              name = each.value["name"],
-              azureQueue = each.value["azureQueue"] == null ? null : {
-                queueLength = each.value["azureQueue"].queue_length,
-                queueName   = each.value["azureQueue"].queue_name
-                auth = [for k in each.value["azureQueue"].auth : [
+              name = k.name,
+              azureQueue = k.azureQueue == null ? null : {
+                queueLength = k.azureQueue.queue_length,
+                queueName   = k.azureQueue.queue_name
+                auth = k.azureQueue.auth == null ? [] : [for v in k.azureQueue.auth : [
                   {
-                    secretRef        = each.value["secret_reference"],
-                    triggerParameter = each.value["trigger_parameter"]
+                    secretRef        = v.secret_reference,
+                    triggerParameter = v.trigger_parameter
                   }
-                ] if k != null]
+                ]]
               },
-              custom = each.value["custom"] == null ? null : {
-                metadata = each.value["custom"].metadata,
-                type     = each.value["custom"].type
-                auth = [for k in each.value["custom"].auth : [
+              custom = k.custom == null ? null : {
+                metadata = k.custom.metadata,
+                type     = k.custom.type
+                auth = k.custom.auth == null ? [] : [for v in k.custom.auth : [
                   {
-                    secretRef        = each.value["secret_reference"],
-                    triggerParameter = each.value["trigger_parameter"]
+                    secretRef        = v.secret_reference,
+                    triggerParameter = v.trigger_parameter
                   }
-                ] if k != null]
+                ]]
               },
-              http = each.value["http"] == null ? null : {
-                metadata = each.value["http"].metadata,
-                auth = [for k in each.value["http"].auth : [
+              http = k.http == null ? null : {
+                metadata = k.http.metadata,
+                auth = k.http.auth == null ? [] : [for v in k.http.auth : [
                   {
-                    secretRef        = each.value["secret_reference"],
-                    triggerParameter = each.value["trigger_parameter"]
+                    secretRef        = v.secret_reference,
+                    triggerParameter = v.trigger_parameter
                   }
-                ] if k != null]
+                ]]
               },
-              tcp = each.value["tcp"] == null ? null : {
-                metadata = each.value["tcp"].metadata,
-                auth = [for k in each.value["tcp"].auth : [
+              tcp = k.tcp == null ? null : {
+                metadata = k.tcp.metadata,
+                auth = k.tcp.auth == null ? [] : [for v in k.tcp.auth : [
                   {
-                    secretRef        = each.value["secret_reference"],
-                    triggerParameter = each.value["trigger_parameter"]
+                    secretRef        = v.secret_reference,
+                    triggerParameter = v.trigger_parameter
                   }
-                ] if k != null]
+                ]]
               }
             }
           ]]
         },
-        volumes = [for k in each.value["volumes"] : [
+        volumes = each.value["volumes"] == null ? [] : [for k in each.value["volumes"] : [
           {
-            name        = each.value["name"],
+            name        = k.name,
             storageType = "EmptyDir"
           }
-        ] if k != null]
+        ]]
       }
     }
   })

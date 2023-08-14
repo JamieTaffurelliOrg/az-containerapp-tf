@@ -39,10 +39,10 @@ variable "container_apps" {
       ingress = optional(object({
         allow_insecure_connections = optional(bool, false)
         client_certificate_mode    = optional(string)
-        exposed_port               = number
+        exposed_port               = optional(number)
         external_enabled           = optional(bool, false)
         target_port                = number
-        transport                  = optional(string, "auto")
+        transport                  = optional(string, "Auto")
         cors_policy = optional(object({
           allow_credentials = optional(bool)
           allowed_headers   = optional(list(string))
@@ -70,7 +70,13 @@ variable "container_apps" {
           label           = optional(string)
           latest_revision = optional(bool)
           percentage      = number
-        })))
+          })),
+          {
+            "lastest-revision" = {
+              latest_revision = true
+              percentage      = 100
+            }
+        })
       }))
       registries = optional(list(object({
         server               = string
@@ -89,7 +95,7 @@ variable "container_apps" {
         args    = optional(list(string))
         command = optional(list(string))
         image   = string
-        cpu     = string
+        cpu     = number
         memory  = string
         liveness_probe = optional(object({
           type                             = optional(string, "Liveness")
@@ -144,12 +150,12 @@ variable "container_apps" {
           path = string
         })))
       }))
-      init_containers = list(object({
+      init_containers = optional(list(object({
         name    = string
         args    = optional(list(string))
         command = optional(list(string))
         image   = string
-        cpu     = string
+        cpu     = number
         memory  = string
         envs = optional(list(object({
           name        = string
@@ -160,7 +166,7 @@ variable "container_apps" {
           name = string
           path = string
         })))
-      }))
+      })))
       scale = object({
         max_replicas = number
         min_replicas = number
