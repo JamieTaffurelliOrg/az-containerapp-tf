@@ -316,7 +316,7 @@ resource "azapi_resource" "container_app" {
                   ]]
                 }
               }
-            ]],
+            ] if v != null],
             resources = {
               cpu    = k.cpu,
               memory = k.memory
